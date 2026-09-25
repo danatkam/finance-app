@@ -215,7 +215,7 @@
       
       const payload = { action: "add_transaction", type: currentType, amount: Number(amount), category: category, description: description, user_name: userName };
       
-      if (tg && tg.sendData) { tg.sendData(JSON.stringify(payload)); tg.close(); }
+      if (tg && tg.sendData) { tg.sendData(JSON.stringify(payload)); }
     }
   </script>
 </body>
