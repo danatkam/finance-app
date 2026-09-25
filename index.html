@@ -148,13 +148,17 @@
             const isInc = t.type === 'Доход';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center py-1.5 border-b border-slate-700/50 last:border-0';
+            
+            // ВОТ ТУТ ДОБАВЛЕН КРЕСТИК И ОСТАВЛЕН ТЕКСТ
             item.innerHTML = `
-              <div>
+              <div class="flex-1">
                 <p class="font-medium text-white">${t.cat} <span class="text-slate-500 text-[10px]">(${t.who})</span></p>
                 <p class="text-slate-400 text-[10px]">${t.desc || t.date}</p>
               </div>
-              <span class="font-bold ${isInc ? 'text-emerald-400' : 'text-slate-200'}">${isInc ? '+' : '-'}${Number(t.amount).toLocaleString('ru-RU')} ₸</span>
+              <span class="font-bold ${isInc ? 'text-emerald-400' : 'text-slate-200'} mr-3">${isInc ? '+' : '-'}${Number(t.amount).toLocaleString('ru-RU')} ₸</span>
+              <button onclick="deleteTx(${t.row})" class="text-rose-500 text-xl font-bold px-2 py-1 bg-rose-500/10 rounded-lg hover:bg-rose-500/30 transition-colors">×</button>
             `;
+            
             listEl.appendChild(item);
           });
         }
@@ -229,7 +233,6 @@
         user_name: userName
       };
 
-      // ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ WEBHOOK URL ИЗ ШАГА 1 (с /add-transaction на конце)
       const POST_URL = 'https://n8n.uhostkz.qzz.io/webhook/add-transaction';
 
       try {
@@ -239,7 +242,6 @@
           body: JSON.stringify(payload)
         });
         
-        // Очищаем форму и обновляем графики без закрытия приложения
         document.getElementById('inp-amount').value = '';
         document.getElementById('inp-desc').value = '';
         loadRealData(currentPeriod);
@@ -250,6 +252,26 @@
       } finally {
         btn.innerText = 'Записать в таблицу';
         btn.disabled = false;
+      }
+    }
+
+    // НОВАЯ ФУНКЦИЯ УДАЛЕНИЯ
+    async function deleteTx(rowNum) {
+      if (!confirm('Точно удалить эту операцию?')) return;
+
+      const DEL_URL = 'https://n8n.uhostkz.qzz.io/webhook/delete-transaction';
+
+      try {
+        await fetch(DEL_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ row: rowNum })
+        });
+        
+        loadRealData(currentPeriod);
+        if (tg) tg.showAlert("Запись удалена!");
+      } catch (err) {
+        if (tg) tg.showAlert("Ошибка удаления.");
       }
     }
   </script>
