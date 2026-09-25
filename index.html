@@ -8,11 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      background-color: var(--tg-theme-bg-color, #0f172a);
-      color: var(--tg-theme-text-color, #f8fafc);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
+    body { background-color: var(--tg-theme-bg-color, #0f172a); color: var(--tg-theme-text-color, #f8fafc); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .active-period { background-color: #3b82f6 !important; color: #ffffff !important; }
   </style>
 </head>
 <body class="p-4 pb-24">
@@ -23,6 +20,13 @@
       <p id="user-greeting" class="text-xs text-slate-400">Семейный доступ: Загрузка...</p>
     </div>
     <span id="current-date-badge" class="text-xs px-2.5 py-1 bg-slate-800 rounded-full border border-slate-700 text-slate-300 font-medium">Сегодня</span>
+  </div>
+
+  <!-- Фильтр периодов -->
+  <div class="flex bg-slate-800/80 p-1 rounded-xl mb-4 text-xs font-medium border border-slate-700">
+    <button onclick="setPeriod('week')" id="btn-week" class="flex-1 py-1.5 rounded-lg text-slate-300 transition-colors">Неделя</button>
+    <button onclick="setPeriod('month')" id="btn-month" class="flex-1 py-1.5 rounded-lg active-period text-slate-300 transition-colors">Месяц</button>
+    <button onclick="setPeriod('year')" id="btn-year" class="flex-1 py-1.5 rounded-lg text-slate-300 transition-colors">Год</button>
   </div>
 
   <!-- Карточки баланса -->
@@ -37,7 +41,7 @@
     </div>
   </div>
 
-  <!-- Круговая диаграмма реальных категорий -->
+  <!-- Круговая диаграмма -->
   <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-5">
     <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Структура расходов</h3>
     <div class="relative h-48 flex justify-center items-center">
@@ -45,7 +49,7 @@
     </div>
   </div>
 
-  <!-- Блок ИИ-Аналитики Gemini -->
+  <!-- Блок ИИ-Аналитики -->
   <div class="bg-gradient-to-br from-indigo-950/60 to-slate-900 p-4 rounded-2xl border border-indigo-500/30 mb-5">
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2">
@@ -55,7 +59,7 @@
       <button onclick="requestAiAdvice()" id="ai-btn" class="text-[11px] px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition-all">Обновить</button>
     </div>
     <p id="ai-text" class="text-xs leading-relaxed text-slate-300">
-      Нажмите кнопку «Обновить», чтобы получить экспресс-анализ бюджета от Gemini на основе реальных данных из таблицы.
+      Нажмите кнопку «Обновить», чтобы получить экспресс-анализ бюджета.
     </p>
   </div>
 
@@ -67,17 +71,14 @@
     </div>
   </div>
 
-  <!-- Форма внесения операции -->
+  <!-- Форма внесения -->
   <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
     <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Внести операцию</h3>
-    
     <div class="flex gap-2 mb-3">
       <button type="button" id="type-exp" onclick="setType('Расход')" class="flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white">Расход</button>
       <button type="button" id="type-inc" onclick="setType('Доход')" class="flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300">Доход</button>
     </div>
-
     <input type="number" id="inp-amount" placeholder="Сумма (₸)" inputmode="numeric" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-base font-bold text-white mb-2 focus:outline-none focus:border-blue-500">
-    
     <select id="inp-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white mb-2 focus:outline-none focus:border-blue-500">
       <option value="Продукты">🛒 Продукты</option>
       <option value="Коммуналка">🏠 Коммуналка</option>
@@ -88,91 +89,63 @@
       <option value="Техника">📷 Оборудование / Техника</option>
       <option value="Прочее">📦 Прочее</option>
     </select>
-
     <input type="text" id="inp-desc" placeholder="Описание (необязательно)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white mb-3 focus:outline-none focus:border-blue-500">
-
     <button onclick="submitForm()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Записать в таблицу</button>
   </div>
 
   <script>
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
+    if (tg) { tg.ready(); tg.expand(); }
 
     const userName = tg?.initDataUnsafe?.user?.first_name || 'Данат';
     document.getElementById('user-greeting').innerText = `Семейный доступ: ${userName}`;
 
-    // Отображение сегодняшней даты в шапке
     const now = new Date();
-    const dateFormatted = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-    document.getElementById('current-date-badge').innerText = dateFormatted;
+    document.getElementById('current-date-badge').innerText = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
     let currentType = 'Расход';
+    let currentPeriod = 'month';
 
-    // ВСТАВЬТЕ СЮДА ВАШ WEBHOOK URL ИЗ n8n
     const N8N_GET_DATA_URL = 'https://n8n.uhostkz.qzz.io/webhook/finance-dashboard';
+    const AI_URL = 'https://n8n.uhostkz.qzz.io/webhook/ai-advice';
 
-    // Инициализация пустой диаграммы
     const ctxCat = document.getElementById('categoryChart').getContext('2d');
     const categoryChart = new Chart(ctxCat, {
       type: 'doughnut',
-      data: {
-        labels: ['Нет данных'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#334155'],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, color: '#94a3b8', font: { size: 10 } } }
-        },
-        cutout: '70%'
-      }
+      data: { labels: ['Нет данных'], datasets: [{ data: [1], backgroundColor: ['#334155'], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, color: '#94a3b8', font: { size: 10 } } } }, cutout: '70%' }
     });
 
-    // Функция загрузки реальных данных из таблицы через n8n
-    async function loadRealData() {
-      if (N8N_GET_DATA_URL.includes('ВСТАВИТЬ_ССЫЛКУ')) return;
-
+    async function loadRealData(period = 'month') {
       try {
-        const res = await fetch(N8N_GET_DATA_URL);
+        const res = await fetch(`${N8N_GET_DATA_URL}?period=${period}`);
         const data = await res.json();
 
-        // 1. Обновление баланса
         document.getElementById('total-income').innerText = `+${Number(data.totalIncome).toLocaleString('ru-RU')} ₸`;
         document.getElementById('total-expense').innerText = `-${Number(data.totalExpense).toLocaleString('ru-RU')} ₸`;
 
-        // 2. Обновление диаграммы категорий
         const catLabels = Object.keys(data.categories);
         const catValues = Object.values(data.categories);
 
         if (catLabels.length > 0) {
           categoryChart.data.labels = catLabels;
           categoryChart.data.datasets[0].data = catValues;
-          categoryChart.data.datasets[0].backgroundColor = [
-            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#e11d48'
-          ];
+          categoryChart.data.datasets[0].backgroundColor = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#e11d48'];
+          categoryChart.update();
+        } else {
+          categoryChart.data.labels = ['Нет данных'];
+          categoryChart.data.datasets[0].data = [1];
+          categoryChart.data.datasets[0].backgroundColor = ['#334155'];
           categoryChart.update();
         }
 
-        // 3. Вывод последних 5 транзакций
         const listEl = document.getElementById('recent-list');
         listEl.innerHTML = '';
-
         if (!data.recent || data.recent.length === 0) {
           listEl.innerHTML = '<p class="text-slate-500 text-center py-2">Транзакций пока нет</p>';
         } else {
           data.recent.forEach(t => {
             const isInc = t.type === 'Доход';
-            const sign = isInc ? '+' : '-';
-            const colorClass = isInc ? 'text-emerald-400' : 'text-slate-200';
-
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center py-1.5 border-b border-slate-700/50 last:border-0';
             item.innerHTML = `
@@ -180,17 +153,28 @@
                 <p class="font-medium text-white">${t.cat} <span class="text-slate-500 text-[10px]">(${t.who})</span></p>
                 <p class="text-slate-400 text-[10px]">${t.desc || t.date}</p>
               </div>
-              <span class="font-bold ${colorClass}">${sign}${Number(t.amount).toLocaleString('ru-RU')} ₸</span>
+              <span class="font-bold ${isInc ? 'text-emerald-400' : 'text-slate-200'}">${isInc ? '+' : '-'}${Number(t.amount).toLocaleString('ru-RU')} ₸</span>
             `;
             listEl.appendChild(item);
           });
         }
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-      }
+      } catch (err) { console.error('Ошибка загрузки данных:', err); }
     }
 
-    loadRealData();
+    // Загрузка по умолчанию
+    loadRealData(currentPeriod);
+
+    // Функция переключения периодов по клику
+    function setPeriod(period) {
+      currentPeriod = period;
+      ['week', 'month', 'year'].forEach(p => document.getElementById(`btn-${p}`).classList.remove('active-period'));
+      document.getElementById(`btn-${period}`).classList.add('active-period');
+      
+      document.getElementById('total-income').innerText = '...';
+      document.getElementById('total-expense').innerText = '...';
+      
+      loadRealData(period);
+    }
 
     function setType(type) {
       currentType = type;
@@ -211,8 +195,6 @@
       btn.innerText = 'Думаю...';
       btn.disabled = true;
 
-      const AI_URL = 'https://n8n.uhostkz.qzz.io/webhook/ai-advice';
-
       try {
         const res = await fetch(AI_URL);
         const data = await res.json();
@@ -229,25 +211,11 @@
       const amount = document.getElementById('inp-amount').value;
       const category = document.getElementById('inp-category').value;
       const description = document.getElementById('inp-desc').value;
-
-      if (!amount) {
-        if (tg) tg.showAlert("Укажите сумму!");
-        return;
-      }
-
-      const payload = {
-        action: "add_transaction",
-        type: currentType,
-        amount: Number(amount),
-        category: category,
-        description: description,
-        user_name: userName
-      };
-
-      if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify(payload));
-        tg.close();
-      }
+      if (!amount) { if (tg) tg.showAlert("Укажите сумму!"); return; }
+      
+      const payload = { action: "add_transaction", type: currentType, amount: Number(amount), category: category, description: description, user_name: userName };
+      
+      if (tg && tg.sendData) { tg.sendData(JSON.stringify(payload)); tg.close(); }
     }
   </script>
 </body>
