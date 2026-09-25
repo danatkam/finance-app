@@ -1,120 +1,251 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Семейный Бюджет</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            padding: 20px;
-            margin: 0;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            border-radius: 8px;
-            box-sizing: border-box;
-            background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            color: var(--tg-theme-text-color, #000000);
-            font-size: 16px;
-        }
-        .type-switch {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .type-btn {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background: var(--tg-theme-secondary-bg-color, #f1f1f1);
-            color: var(--tg-theme-text-color, #000000);
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .active-btn {
-            background: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border-color: var(--tg-theme-button-color, #3390ec);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Семейный Бюджет</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: var(--tg-theme-bg-color, #0f172a);
+      color: var(--tg-theme-text-color, #f8fafc);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .active-period {
+      background-color: #3b82f6 !important;
+      color: #ffffff !important;
+    }
+  </style>
 </head>
-<body>
-    <h2 id="greeting">Привет!</h2>
+<body class="p-4 pb-24">
+  <!-- Шапка -->
+  <div class="flex justify-between items-center mb-5">
+    <div>
+      <h1 class="text-xl font-bold">Семейный Бюджет ₸</h1>
+      <p id="user-greeting" class="text-xs text-slate-400">Привет, Данат!</p>
+    </div>
+    <span class="text-xs px-2.5 py-1 bg-slate-800 rounded-full border border-slate-700">Астана</span>
+  </div>
+
+  <!-- Фильтр периодов -->
+  <div class="flex bg-slate-800/80 p-1 rounded-xl mb-4 text-xs font-medium border border-slate-700">
+    <button onclick="setPeriod('week')" id="btn-week" class="flex-1 py-1.5 rounded-lg text-slate-300">Неделя</button>
+    <button onclick="setPeriod('month')" id="btn-month" class="flex-1 py-1.5 rounded-lg active-period text-slate-300">Месяц</button>
+    <button onclick="setPeriod('year')" id="btn-year" class="flex-1 py-1.5 rounded-lg text-slate-300">Год</button>
+  </div>
+
+  <!-- Баланс-карточки -->
+  <div class="grid grid-cols-2 gap-3 mb-5">
+    <div class="bg-slate-800/50 p-3 rounded-2xl border border-emerald-500/20">
+      <span class="text-xs text-emerald-400 font-medium">Доходы</span>
+      <p id="total-income" class="text-lg font-bold text-emerald-400 mt-0.5">+450 000 ₸</p>
+    </div>
+    <div class="bg-slate-800/50 p-3 rounded-2xl border border-rose-500/20">
+      <span class="text-xs text-rose-400 font-medium">Расходы</span>
+      <p id="total-expense" class="text-lg font-bold text-rose-400 mt-0.5">-128 400 ₸</p>
+    </div>
+  </div>
+
+  <!-- Круговая диаграмма -->
+  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-4">
+    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Расходы по категориям</h3>
+    <div class="relative h-48 flex justify-center items-center">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Столбчатый график динамики -->
+  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-4">
+    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Динамика расходов</h3>
+    <div class="relative h-40">
+      <canvas id="historyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Блок ИИ-Аналитики Gemini -->
+  <div class="bg-gradient-to-br from-indigo-950/60 to-slate-900 p-4 rounded-2xl border border-indigo-500/30 mb-5">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🤖</span>
+        <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">Совет от Gemini ИИ</h3>
+      </div>
+      <button onclick="requestAiAdvice()" id="ai-btn" class="text-[11px] px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition-all">Обновить</button>
+    </div>
+    <p id="ai-text" class="text-xs leading-relaxed text-slate-300">
+      Основная статья трат за выбранный период — <b>Продукты (42%)</b>. Траты на транспорт снизились на 15%. Рекомендуется зафиксировать лимит на доставку еды.
+    </p>
+  </div>
+
+  <!-- Форма быстрой записи -->
+  <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Внести операцию</h3>
     
-    <div class="type-switch">
-        <button type="button" id="btn-expense" class="type-btn active-btn" onclick="setType('Расход')">Расход</button>
-        <button type="button" id="btn-income" class="type-btn" onclick="setType('Доход')">Доход</button>
+    <div class="flex gap-2 mb-3">
+      <button type="button" id="type-exp" onclick="setType('Расход')" class="flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white">Расход</button>
+      <button type="button" id="type-inc" onclick="setType('Доход')" class="flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300">Доход</button>
     </div>
 
-    <input type="number" id="amount" placeholder="Сумма (₸)" inputmode="numeric" required>
+    <input type="number" id="inp-amount" placeholder="Сумма (₸)" inputmode="numeric" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-base font-bold text-white mb-2 focus:outline-none focus:border-blue-500">
     
-    <select id="category">
-        <option value="Продукты">Продукты</option>
-        <option value="Коммуналка">Коммуналка</option>
-        <option value="Транспорт">Транспорт</option>
-        <option value="Развлечения">Развлечения</option>
-        <option value="Дети">Дети</option>
-        <option value="Прочее">Прочее</option>
+    <select id="inp-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white mb-2 focus:outline-none focus:border-blue-500">
+      <option value="Продукты">🛒 Продукты</option>
+      <option value="Коммуналка">🏠 Коммуналка</option>
+      <option value="Транспорт">🚗 Транспорт / Такси</option>
+      <option value="Дети">👶 Дети (Назар)</option>
+      <option value="Кафе">☕ Кафе и Рестораны</option>
+      <option value="Здоровье">💊 Здоровье</option>
+      <option value="Техника">📷 Оборудование / Техника</option>
+      <option value="Прочее">📦 Прочее</option>
     </select>
 
-    <input type="text" id="description" placeholder="Описание (необязательно)">
+    <input type="text" id="inp-desc" placeholder="Описание (необязательно)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white mb-3 focus:outline-none focus:border-blue-500">
 
-    <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачивает окно на весь экран Telegram
+    <button onclick="submitForm()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Записать в таблицу</button>
+  </div>
 
-        let currentType = 'Расход';
-        
-        // Автоматически берет имя из Telegram (ваше или Zaituna)
-        let userName = tg.initDataUnsafe?.user?.first_name || 'Семья';
-        document.getElementById('greeting').innerText = 'Привет, ' + userName + '!';
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
 
-        function setType(type) {
-            currentType = type;
-            if(type === 'Расход') {
-                document.getElementById('btn-expense').classList.add('active-btn');
-                document.getElementById('btn-income').classList.remove('active-btn');
-            } else {
-                document.getElementById('btn-income').classList.add('active-btn');
-                document.getElementById('btn-expense').classList.remove('active-btn');
-            }
-        }
+    const userName = tg?.initDataUnsafe?.user?.first_name || 'Данат';
+    document.getElementById('user-greeting').innerText = `Семейный доступ: ${userName}`;
 
-        // Включение главной кнопки Telegram внизу экрана
-        tg.MainButton.setText('СОХРАНИТЬ');
-        tg.MainButton.show();
+    let currentType = 'Расход';
+    let currentPeriod = 'month';
 
-        // Отправка данных в n8n при нажатии
-        tg.MainButton.onClick(function() {
-            let amount = document.getElementById('amount').value;
-            let category = document.getElementById('category').value;
-            let description = document.getElementById('description').value;
+    // Круговая диаграмма
+    const ctxCat = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: ['Продукты', 'Транспорт', 'Дети', 'Кафе', 'Прочее'],
+        datasets: [{
+          data: [54000, 22000, 30000, 14000, 8400],
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, color: '#94a3b8', font: { size: 10 } } }
+        },
+        cutout: '70%'
+      }
+    });
 
-            if (!amount) {
-                tg.showAlert('Введите сумму!');
-                return;
-            }
+    // Столбчатый график
+    const ctxHist = document.getElementById('historyChart').getContext('2d');
+    const historyChart = new Chart(ctxHist, {
+      type: 'bar',
+      data: {
+        labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+        datasets: [{
+          label: 'Траты (₸)',
+          data: [12000, 8500, 19000, 6400, 25000, 31000, 26500],
+          backgroundColor: '#3b82f6',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1e293b' } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
 
-            let data = {
-                type: currentType,
-                amount: amount,
-                category: category,
-                description: description,
-                user_name: userName
-            };
+    function setType(type) {
+      currentType = type;
+      const bExp = document.getElementById('type-exp');
+      const bInc = document.getElementById('type-inc');
+      if (type === 'Расход') {
+        bExp.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white';
+        bInc.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300';
+      } else {
+        bInc.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-emerald-600 text-white';
+        bExp.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300';
+      }
+    }
 
-            // Отправляем JSON обратно в бота
-            tg.sendData(JSON.stringify(data));
-            tg.close();
-        });
-    </script>
+    function setPeriod(period) {
+      currentPeriod = period;
+      ['week', 'month', 'year'].forEach(p => {
+        document.getElementById(`btn-${p}`).classList.remove('active-period');
+      });
+      document.getElementById(`btn-${period}`).classList.add('active-period');
+
+      // Обновление отображения для выбранного периода
+      if (period === 'week') {
+        historyChart.data.labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        historyChart.data.datasets[0].data = [4500, 3200, 8100, 2500, 9400, 12000, 6000];
+        document.getElementById('total-expense').innerText = '-45 700 ₸';
+      } else if (period === 'month') {
+        historyChart.data.labels = ['Нед 1', 'Нед 2', 'Нед 3', 'Нед 4'];
+        historyChart.data.datasets[0].data = [35000, 42000, 28000, 23400];
+        document.getElementById('total-expense').innerText = '-128 400 ₸';
+      } else {
+        historyChart.data.labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'];
+        historyChart.data.datasets[0].data = [140000, 165000, 150000, 190000, 145000, 128400];
+        document.getElementById('total-expense').innerText = '-918 400 ₸';
+      }
+      historyChart.update();
+    }
+
+    function requestAiAdvice() {
+      const btn = document.getElementById('ai-btn');
+      const text = document.getElementById('ai-text');
+      btn.innerText = 'Думаю...';
+      btn.disabled = true;
+
+      // Если бот открыт внутри Telegram, отправляем команду боту
+      if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify({ action: "get_ai_report", period: currentPeriod }));
+        tg.close();
+      } else {
+        setTimeout(() => {
+          text.innerText = "ИИ-анализ: За текущий период основные расходы пришлись на категорию Продукты. В целом бюджет сбалансирован, перерасхода не зафиксировано.";
+          btn.innerText = 'Обновить';
+          btn.disabled = false;
+        }, 1200);
+      }
+    }
+
+    function submitForm() {
+      const amount = document.getElementById('inp-amount').value;
+      const category = document.getElementById('inp-category').value;
+      const description = document.getElementById('inp-desc').value;
+
+      if (!amount) {
+        if (tg) tg.showAlert("Укажите сумму!");
+        return;
+      }
+
+      const payload = {
+        action: "add_transaction",
+        type: currentType,
+        amount: Number(amount),
+        category: category,
+        description: description,
+        user_name: userName
+      };
+
+      if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify(payload));
+        tg.close();
+      } else {
+        alert("Запись готова: " + JSON.stringify(payload));
+      }
+    }
+  </script>
 </body>
 </html>
