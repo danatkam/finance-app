@@ -205,14 +205,23 @@
       }
     }
 
-    function requestAiAdvice() {
+    async function requestAiAdvice() {
       const btn = document.getElementById('ai-btn');
-      btn.innerText = 'Запрос...';
+      const text = document.getElementById('ai-text');
+      btn.innerText = 'Думаю...';
       btn.disabled = true;
 
-      if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify({ action: "get_ai_report" }));
-        tg.close();
+      const AI_URL = 'https://n8n.uhostkz.qzz.io/webhook/ai-advice';
+
+      try {
+        const res = await fetch(AI_URL);
+        const data = await res.json();
+        text.innerHTML = `<b>Анализ завершен:</b> <br> ${data.advice}`;
+      } catch (err) {
+        text.innerText = "Ошибка соединения с ИИ. Попробуйте позже.";
+      } finally {
+        btn.innerText = 'Обновить';
+        btn.disabled = false;
       }
     }
 
