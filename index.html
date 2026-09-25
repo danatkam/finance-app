@@ -207,15 +207,50 @@
       }
     }
 
-    function submitForm() {
+    async function submitForm() {
+      const btn = document.querySelector('button[onclick="submitForm()"]');
       const amount = document.getElementById('inp-amount').value;
       const category = document.getElementById('inp-category').value;
       const description = document.getElementById('inp-desc').value;
-      if (!amount) { if (tg) tg.showAlert("Укажите сумму!"); return; }
-      
-      const payload = { action: "add_transaction", type: currentType, amount: Number(amount), category: category, description: description, user_name: userName };
-      
-      if (tg && tg.sendData) { tg.sendData(JSON.stringify(payload)); }
+
+      if (!amount) {
+        if (tg) tg.showAlert("Укажите сумму!");
+        return;
+      }
+
+      btn.innerText = 'Запись...';
+      btn.disabled = true;
+
+      const payload = {
+        type: currentType,
+        amount: Number(amount),
+        category: category,
+        description: description,
+        user_name: userName
+      };
+
+      // ВСТАВЬТЕ СЮДА ВАШ НОВЫЙ WEBHOOK URL ИЗ ШАГА 1 (с /add-transaction на конце)
+      const POST_URL = 'https://n8n.uhostkz.qzz.io/webhook/add-transaction';
+
+      try {
+        await fetch(POST_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        // Очищаем форму и обновляем графики без закрытия приложения
+        document.getElementById('inp-amount').value = '';
+        document.getElementById('inp-desc').value = '';
+        loadRealData(currentPeriod);
+        
+        if (tg) tg.showAlert("Успешно записано!");
+      } catch (err) {
+        if (tg) tg.showAlert("Ошибка записи.");
+      } finally {
+        btn.innerText = 'Записать в таблицу';
+        btn.disabled = false;
+      }
     }
   </script>
 </body>
