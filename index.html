@@ -13,10 +13,6 @@
       color: var(--tg-theme-text-color, #f8fafc);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .active-period {
-      background-color: #3b82f6 !important;
-      color: #ffffff !important;
-    }
   </style>
 </head>
 <body class="p-4 pb-24">
@@ -24,43 +20,28 @@
   <div class="flex justify-between items-center mb-5">
     <div>
       <h1 class="text-xl font-bold">Семейный Бюджет ₸</h1>
-      <p id="user-greeting" class="text-xs text-slate-400">Привет, Данат!</p>
+      <p id="user-greeting" class="text-xs text-slate-400">Семейный доступ: Загрузка...</p>
     </div>
-    <span class="text-xs px-2.5 py-1 bg-slate-800 rounded-full border border-slate-700">Астана</span>
+    <span id="current-date-badge" class="text-xs px-2.5 py-1 bg-slate-800 rounded-full border border-slate-700 text-slate-300 font-medium">Сегодня</span>
   </div>
 
-  <!-- Фильтр периодов -->
-  <div class="flex bg-slate-800/80 p-1 rounded-xl mb-4 text-xs font-medium border border-slate-700">
-    <button onclick="setPeriod('week')" id="btn-week" class="flex-1 py-1.5 rounded-lg text-slate-300">Неделя</button>
-    <button onclick="setPeriod('month')" id="btn-month" class="flex-1 py-1.5 rounded-lg active-period text-slate-300">Месяц</button>
-    <button onclick="setPeriod('year')" id="btn-year" class="flex-1 py-1.5 rounded-lg text-slate-300">Год</button>
-  </div>
-
-  <!-- Баланс-карточки -->
+  <!-- Карточки баланса -->
   <div class="grid grid-cols-2 gap-3 mb-5">
-    <div class="bg-slate-800/50 p-3 rounded-2xl border border-emerald-500/20">
+    <div class="bg-slate-800/50 p-3.5 rounded-2xl border border-emerald-500/20">
       <span class="text-xs text-emerald-400 font-medium">Доходы</span>
-      <p id="total-income" class="text-lg font-bold text-emerald-400 mt-0.5">+450 000 ₸</p>
+      <p id="total-income" class="text-lg font-bold text-emerald-400 mt-1">0 ₸</p>
     </div>
-    <div class="bg-slate-800/50 p-3 rounded-2xl border border-rose-500/20">
+    <div class="bg-slate-800/50 p-3.5 rounded-2xl border border-rose-500/20">
       <span class="text-xs text-rose-400 font-medium">Расходы</span>
-      <p id="total-expense" class="text-lg font-bold text-rose-400 mt-0.5">-128 400 ₸</p>
+      <p id="total-expense" class="text-lg font-bold text-rose-400 mt-1">0 ₸</p>
     </div>
   </div>
 
-  <!-- Круговая диаграмма -->
-  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-4">
-    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Расходы по категориям</h3>
+  <!-- Круговая диаграмма реальных категорий -->
+  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-5">
+    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Структура расходов</h3>
     <div class="relative h-48 flex justify-center items-center">
       <canvas id="categoryChart"></canvas>
-    </div>
-  </div>
-
-  <!-- Столбчатый график динамики -->
-  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-4">
-    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Динамика расходов</h3>
-    <div class="relative h-40">
-      <canvas id="historyChart"></canvas>
     </div>
   </div>
 
@@ -74,11 +55,19 @@
       <button onclick="requestAiAdvice()" id="ai-btn" class="text-[11px] px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition-all">Обновить</button>
     </div>
     <p id="ai-text" class="text-xs leading-relaxed text-slate-300">
-      Основная статья трат за выбранный период — <b>Продукты (42%)</b>. Траты на транспорт снизились на 15%. Рекомендуется зафиксировать лимит на доставку еды.
+      Нажмите кнопку «Обновить», чтобы получить экспресс-анализ бюджета от Gemini на основе реальных данных из таблицы.
     </p>
   </div>
 
-  <!-- Форма быстрой записи -->
+  <!-- Последние операции -->
+  <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 mb-5">
+    <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Последние операции</h3>
+    <div id="recent-list" class="space-y-2.5 text-xs">
+      <p class="text-slate-500 text-center py-2">Загрузка данных...</p>
+    </div>
+  </div>
+
+  <!-- Форма внесения операции -->
   <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
     <h3 class="text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider">Внести операцию</h3>
     
@@ -115,18 +104,25 @@
     const userName = tg?.initDataUnsafe?.user?.first_name || 'Данат';
     document.getElementById('user-greeting').innerText = `Семейный доступ: ${userName}`;
 
-    let currentType = 'Расход';
-    let currentPeriod = 'month';
+    // Отображение сегодняшней даты в шапке
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    document.getElementById('current-date-badge').innerText = dateFormatted;
 
-    // Круговая диаграмма
+    let currentType = 'Расход';
+
+    // ВСТАВЬТЕ СЮДА ВАШ WEBHOOK URL ИЗ n8n
+    const N8N_GET_DATA_URL = 'ВСТАВИТЬ_ССЫЛКУ_ИЗ_ШАГА_1';
+
+    // Инициализация пустой диаграммы
     const ctxCat = document.getElementById('categoryChart').getContext('2d');
     const categoryChart = new Chart(ctxCat, {
       type: 'doughnut',
       data: {
-        labels: ['Продукты', 'Транспорт', 'Дети', 'Кафе', 'Прочее'],
+        labels: ['Нет данных'],
         datasets: [{
-          data: [54000, 22000, 30000, 14000, 8400],
-          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+          data: [1],
+          backgroundColor: ['#334155'],
           borderWidth: 0
         }]
       },
@@ -140,29 +136,61 @@
       }
     });
 
-    // Столбчатый график
-    const ctxHist = document.getElementById('historyChart').getContext('2d');
-    const historyChart = new Chart(ctxHist, {
-      type: 'bar',
-      data: {
-        labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-        datasets: [{
-          label: 'Траты (₸)',
-          data: [12000, 8500, 19000, 6400, 25000, 31000, 26500],
-          backgroundColor: '#3b82f6',
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
-          y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1e293b' } }
-        },
-        plugins: { legend: { display: false } }
+    // Функция загрузки реальных данных из таблицы через n8n
+    async function loadRealData() {
+      if (N8N_GET_DATA_URL.includes('ВСТАВИТЬ_ССЫЛКУ')) return;
+
+      try {
+        const res = await fetch(N8N_GET_DATA_URL);
+        const data = await res.json();
+
+        // 1. Обновление баланса
+        document.getElementById('total-income').innerText = `+${Number(data.totalIncome).toLocaleString('ru-RU')} ₸`;
+        document.getElementById('total-expense').innerText = `-${Number(data.totalExpense).toLocaleString('ru-RU')} ₸`;
+
+        // 2. Обновление диаграммы категорий
+        const catLabels = Object.keys(data.categories);
+        const catValues = Object.values(data.categories);
+
+        if (catLabels.length > 0) {
+          categoryChart.data.labels = catLabels;
+          categoryChart.data.datasets[0].data = catValues;
+          categoryChart.data.datasets[0].backgroundColor = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#e11d48'
+          ];
+          categoryChart.update();
+        }
+
+        // 3. Вывод последних 5 транзакций
+        const listEl = document.getElementById('recent-list');
+        listEl.innerHTML = '';
+
+        if (!data.recent || data.recent.length === 0) {
+          listEl.innerHTML = '<p class="text-slate-500 text-center py-2">Транзакций пока нет</p>';
+        } else {
+          data.recent.forEach(t => {
+            const isInc = t.type === 'Доход';
+            const sign = isInc ? '+' : '-';
+            const colorClass = isInc ? 'text-emerald-400' : 'text-slate-200';
+
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center py-1.5 border-b border-slate-700/50 last:border-0';
+            item.innerHTML = `
+              <div>
+                <p class="font-medium text-white">${t.cat} <span class="text-slate-500 text-[10px]">(${t.who})</span></p>
+                <p class="text-slate-400 text-[10px]">${t.desc || t.date}</p>
+              </div>
+              <span class="font-bold ${colorClass}">${sign}${Number(t.amount).toLocaleString('ru-RU')} ₸</span>
+            `;
+            listEl.appendChild(item);
+          });
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
       }
-    });
+    }
+
+    loadRealData();
 
     function setType(type) {
       currentType = type;
@@ -177,46 +205,14 @@
       }
     }
 
-    function setPeriod(period) {
-      currentPeriod = period;
-      ['week', 'month', 'year'].forEach(p => {
-        document.getElementById(`btn-${p}`).classList.remove('active-period');
-      });
-      document.getElementById(`btn-${period}`).classList.add('active-period');
-
-      // Обновление отображения для выбранного периода
-      if (period === 'week') {
-        historyChart.data.labels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        historyChart.data.datasets[0].data = [4500, 3200, 8100, 2500, 9400, 12000, 6000];
-        document.getElementById('total-expense').innerText = '-45 700 ₸';
-      } else if (period === 'month') {
-        historyChart.data.labels = ['Нед 1', 'Нед 2', 'Нед 3', 'Нед 4'];
-        historyChart.data.datasets[0].data = [35000, 42000, 28000, 23400];
-        document.getElementById('total-expense').innerText = '-128 400 ₸';
-      } else {
-        historyChart.data.labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'];
-        historyChart.data.datasets[0].data = [140000, 165000, 150000, 190000, 145000, 128400];
-        document.getElementById('total-expense').innerText = '-918 400 ₸';
-      }
-      historyChart.update();
-    }
-
     function requestAiAdvice() {
       const btn = document.getElementById('ai-btn');
-      const text = document.getElementById('ai-text');
-      btn.innerText = 'Думаю...';
+      btn.innerText = 'Запрос...';
       btn.disabled = true;
 
-      // Если бот открыт внутри Telegram, отправляем команду боту
       if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify({ action: "get_ai_report", period: currentPeriod }));
+        tg.sendData(JSON.stringify({ action: "get_ai_report" }));
         tg.close();
-      } else {
-        setTimeout(() => {
-          text.innerText = "ИИ-анализ: За текущий период основные расходы пришлись на категорию Продукты. В целом бюджет сбалансирован, перерасхода не зафиксировано.";
-          btn.innerText = 'Обновить';
-          btn.disabled = false;
-        }, 1200);
       }
     }
 
@@ -242,8 +238,6 @@
       if (tg && tg.sendData) {
         tg.sendData(JSON.stringify(payload));
         tg.close();
-      } else {
-        alert("Запись готова: " + JSON.stringify(payload));
       }
     }
   </script>
