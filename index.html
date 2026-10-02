@@ -184,12 +184,31 @@
       currentType = type;
       const bExp = document.getElementById('type-exp');
       const bInc = document.getElementById('type-inc');
+      const catSelect = document.getElementById('inp-category');
+
       if (type === 'Расход') {
         bExp.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white';
         bInc.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300';
+        catSelect.innerHTML = `
+          <option value="Продукты">🛒 Продукты</option>
+          <option value="Коммуналка">🏠 Коммуналка</option>
+          <option value="Транспорт">🚗 Транспорт / Такси</option>
+          <option value="Дети">👶 Дети (Назар)</option>
+          <option value="Кафе">☕ Кафе и Рестораны</option>
+          <option value="Здоровье">💊 Здоровье</option>
+          <option value="Техника">📷 Оборудование / Техника</option>
+          <option value="Прочее">📦 Прочее</option>
+        `;
       } else {
         bInc.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-emerald-600 text-white';
         bExp.className = 'flex-1 py-2 text-xs font-bold rounded-xl bg-slate-700 text-slate-300';
+        catSelect.innerHTML = `
+          <option value="Зарплата">💰 Зарплата</option>
+          <option value="Бизнес">💼 Qorgan.Tech / Бизнес</option>
+          <option value="Кешбэк">🔄 Кешбэк</option>
+          <option value="Переводы">💳 Переводы / Подарки</option>
+          <option value="Прочее">📦 Прочее</option>
+        `;
       }
     }
 
